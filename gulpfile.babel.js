@@ -10,6 +10,9 @@ import BrowserSync from "browser-sync";
 import watch from "gulp-watch";
 import webpack from "webpack";
 import webpackConfig from "./webpack.conf";
+import autoprefixer from "autoprefixer";
+import sass from "gulp-sass";
+import cssNano from "gulp-cssnano";
 
 const browserSync = BrowserSync.create();
 
@@ -25,10 +28,16 @@ gulp.task("hugo-preview", (cb) => buildSite(cb, hugoArgsPreview));
 gulp.task("build", ["css", "js", "fonts"], (cb) => buildSite(cb, [], "production"));
 gulp.task("build-preview", ["css", "js", "fonts"], (cb) => buildSite(cb, hugoArgsPreview, "production"));
 
-// Compile CSS with PostCSS
-gulp.task("css", () => (
-  gulp.src("./src/css/*.css")
-    .pipe(postcss([cssImport({from: "./src/css/main.css"}), cssnext()]))
+// Compile SCSS
+gulp.task("scss", () => (
+  gulp.src("./src/scss/*.scss")
+    .pipe(sass({
+      outputStyle:  "nested",
+      precision: 10,
+      includePaths: ["node_modules"],
+    }))
+    .pipe(postcss([ autoprefixer() ]))
+    .pipe(cssNano())
     .pipe(gulp.dest("./dist/css"))
     .pipe(browserSync.stream())
 ));
@@ -57,14 +66,14 @@ gulp.task('fonts', () => (
 ));
 
 // Development server with browsersync
-gulp.task("server", ["hugo", "css", "js", "fonts"], () => {
+gulp.task("server", ["hugo", "scss", "js", "fonts"], () => {
   browserSync.init({
     server: {
       baseDir: "./dist"
     }
   });
   watch("./src/js/**/*.js", () => { gulp.start(["js"]) });
-  watch("./src/css/**/*.css", () => { gulp.start(["css"]) });
+  watch("./src/scss/**/*.scss", () => { gulp.start(["scss"]) });
   watch("./src/fonts/**/*", () => { gulp.start(["fonts"]) });
   watch("./site/**/*", () => { gulp.start(["hugo"]) });
 });
